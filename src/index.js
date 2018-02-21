@@ -23,6 +23,7 @@ const installationId = 87602;
 
 const asyncFun = async () => {
   const github = await app.asInstallation(installationId);
+  const octokit = github;
 
   const owner = 'apollographql';
   const repo = 'apollo-bot';
@@ -36,17 +37,56 @@ const asyncFun = async () => {
 
   const master = await github.repos.getBranch({owner, repo, branch: 'master'});
   console.log(master.data.commit.sha);
-  // const ref = 'refs/heads/test';
-  // const sha = master.data.commit.sha;
-  // const branch = await github.gitdata.createReference({owner, repo, ref, sha});
-
   const ref = 'heads/test';
+  const fullRef = 'refs/heads/test';
   const sha = master.data.commit.sha;
-  const branch = await github.gitdata.getReference({owner, repo, ref});
-  console.log(branch.data.object.sha)
+  const branch = await github.gitdata.createReference({owner, repo, ref:fullRef, sha});
+
+  // const sha = master.data.commit.sha;
+  // const branch = await github.gitdata.getReference({owner, repo, ref});
+  // console.log(branch.data.object.sha)
+
   const commit = await github.gitdata.getCommit({owner, repo, sha})
   console.log(commit)
   console.log(commit.data.tree.sha)
+
+  const tree = await github.gitdata.getTree({owner, repo, sha: commit.data.tree.sha, recursive: true})
+
+  console.log(tree)
+  console.log(tree.data.tree)
+
+  // const content = 'hello world!';
+  // const encoding = 'utf-8'; //can be 'base64'
+  // const blob = await octokit.gitdata.createBlob({owner, repo, content, encoding})
+  // console.log(blob)
+  // console.log(blob.data.sha)
+
+  //mode: The file mode; one of
+  //100644 for file (blob),
+  //100755 for executable (blob),
+  //040000 for subdirectory (tree),
+  //160000 for submodule (commit), or
+  //120000 for a blob that specifies the path of a symlink
+  const newNode = {
+    path: 'test/hello.txt',
+    mode: '100644',
+    type: 'blob',
+    // sha: blob.data.sha,
+    content: "hello world!"
+  }
+
+  const newTree = await github.gitdata.createTree({owner, repo, tree: [newNode], base_tree: tree.data.sha});
+  console.log(newTree);
+
+  const newCommit = await github.gitdata.createCommit({owner, repo, message:'test commit', tree: newTree.data.sha, parents:[ commit.data.sha ] });
+  console.log(newCommit);
+
+  // const newRef = await github.gitdata.updateReference({owner, repo, ref, sha:newCommit.data.sha});
+  const newRef = await github.gitdata.updateReference({owner, repo, ref, sha:newCommit.data.sha});
+  console.log(newRef);
+
+  // const pr = await github.pullRequests.create({owner, repo, head: 'test', base: 'master', title:'first one', body: '@jbaxleyiii check me out!'});
+  // console.log(pr);
 }
 
 asyncFun();
