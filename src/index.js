@@ -14,26 +14,162 @@ const app = createApp({
   cert: process.env.PRIVATE_KEY || require('fs').readFileSync(process.env.PRIVATE_KEY_PATH)
 });
 
-app.asApp().then(github => {
-  console.log("Installations:")
-  github.apps.getInstallations({}).then(console.log);
-});
+// const installationId = 87602;
 
-const installationId = 87602;
+class GithubAPI {
 
-const asyncFun = async () => {
-  const github = await app.asInstallation(installationId);
-  const octokit = github;
+  constructor() {
+    this.repo = repo;
+    this.owner = owner;
+    this.fileBlobs = [];
+  }
 
-  const owner = 'apollographql';
-  const repo = 'apollo-bot';
+  async function authenticate() {
+    const githubAsApp = await app.asApp();
+    console.log("Installations:")
+    const installations = await githubAsApp.apps.getInstallations({});
 
+    this.github = app.asInstallation(installations.data[0].id);
+  }
+
+  async function addFile(baseName, branchName, path, content) {
+    const encoding = 'utf-8'; //can be 'base64'
+    const blob = await github.gitdata.createBlob({owner, repo, content, encoding});
+    this.fileBlobs.push({
+      sha: blob.data.sha,
+      path,
+    });
+
+    return blob;
+  }
+
+  async function createBranch(message) {
+    const branch = await github.gitdata.getReference({owner, repo, ref});
+  }
+
+  async function getCurrentCommit(branchName) {
+    const owner = this.owner;
+    const repo = this.repo;
+
+    const branch = await github.repos.getBranch({owner, repo, branch: branchName});
+    const sha = branch.data.commit.sha;
+
+    return this.github.gitdata.getCommit({owner, repo, sha});
+  }
+
+  async function createCommit(message, base_commit) {
+    const owner = this.owner;
+    const repo = this.repo;
+
+    const tree = await this.github.gitdata.getTree({
+      owner,
+      repo,
+      sha:base_commit.data.tree.sha,
+      recursive: true
+    });
+
+    //mode: The file mode; one of
+    //100644 for file (blob),
+    //100755 for executable (blob),
+    //040000 for subdirectory (tree),
+    //160000 for submodule (commit), or
+    //120000 for a blob that specifies the path of a symlink
+    const filesToAdd = this.fileBlobs.map(({sha, path}) => ({
+      mode: '100644',
+      type: 'blob',
+      sha: blob.data.sha,
+      path,
+    }));
+
+    const newTree = await this.github.gitdata.createTree({
+      owner,
+      repo,
+      tree: filesToAdd,
+      base_tree: tree.data.sha
+    });
+
+    return this.github.gitdata.createCommit({
+      owner,
+      repo,
+      message:'test commit',
+      tree: newTree.data.sha,
+      parents:[ commit.data.sha ]
+    });
+  }
+
+  async function pushCommit(branchName, commit) {
+    const ref = `heads/${branchName}`;
+    return await this.github.gitdata.updateReference({
+      owner: this.owner,
+      repo: this.repo,
+      ref,
+      sha:commit.data.sh
+    });
+  }
+
+  async function openPR(base, head, title, body) {
+    return github.pullRequests.create({
+      owner: this.owner,
+      repo: this.repo,
+      head,
+      base,
+      title,
+      body
+    });
+
+  }
+}
+
+async function createIssueComment(github, options) {
   // github.issues.createComment({
   //   owner: 'apollographql',
   //   repo: 'apollo-bot',
   //   number: 1,
   //   body: 'hello world!'
   // });
+  github.issue.createComment(options);
+}
+
+async function addFileOpenPR(github, owner, repo, baseName, branchName, path, content) {
+  const github = await getGithubAPI();
+
+  const master = await github.repos.getBranch({owner, repo, branch: baseName});
+  const ref = `heads/${branchName}`;
+  const fullRef = `refs/heads/${branchName}`;
+  const currentCommitSha = master.data.commit.sha;
+
+  const branch = await github.gitdata.createReference({owner, repo, ref:fullRef, sha: currentCommitSha});
+
+  const commit = await github.gitdata.getCommit({owner, repo, sha: currentCommitSha});
+
+  const tree = await github.gitdata.getTree({owner, repo, sha: commit.data.tree.sha, recursive: true});
+
+  //mode: The file mode; one of
+  //100644 for file (blob),
+  //100755 for executable (blob),
+  //040000 for subdirectory (tree),
+  //160000 for submodule (commit), or
+  //120000 for a blob that specifies the path of a symlink
+  const newNode = {
+    path,
+    mode: '100644',
+    type: 'blob',
+    // sha: blob.data.sha,
+    content,
+  }
+
+  const newTree = await github.gitdata.createTree({owner, repo, tree: [newNode], base_tree: tree.data.sha});
+  const newCommit = await github.gitdata.createCommit({owner, repo, message:'test commit', tree: newTree.data.sha, parents:[ commit.data.sha ] });
+  const newRef = await github.gitdata.updateReference({owner, repo, ref, sha:newCommit.data.sha});
+  const pr = await github.pullRequests.create({owner, repo, head: 'test', base: 'master', title:'first one', body: '@jbaxleyiii check me out!'});
+  return pr;
+}
+
+const asyncFun = async () => {
+  const github = await getGithubAPI();
+
+  const owner = 'apollographql';
+  const repo = 'apollo-bot';
 
   const master = await github.repos.getBranch({owner, repo, branch: 'master'});
   console.log(master.data.commit.sha);
@@ -46,20 +182,20 @@ const asyncFun = async () => {
   // const branch = await github.gitdata.getReference({owner, repo, ref});
   // console.log(branch.data.object.sha)
 
-  const commit = await github.gitdata.getCommit({owner, repo, sha})
-  console.log(commit)
-  console.log(commit.data.tree.sha)
+  const commit = await github.gitdata.getCommit({owner, repo, sha});
+  console.log(commit);
+  console.log(commit.data.tree.sha);
 
-  const tree = await github.gitdata.getTree({owner, repo, sha: commit.data.tree.sha, recursive: true})
+  const tree = await github.gitdata.getTree({owner, repo, sha: commit.data.tree.sha, recursive: true});
 
-  console.log(tree)
-  console.log(tree.data.tree)
+  console.log(tree);
+  console.log(tree.data.tree);
 
   // const content = 'hello world!';
   // const encoding = 'utf-8'; //can be 'base64'
-  // const blob = await octokit.gitdata.createBlob({owner, repo, content, encoding})
-  // console.log(blob)
-  // console.log(blob.data.sha)
+  // const blob = await github.gitdata.createBlob({owner, repo, content, encoding});
+  // console.log(blob);
+  // console.log(blob.data.sha);
 
   //mode: The file mode; one of
   //100644 for file (blob),
@@ -87,11 +223,8 @@ const asyncFun = async () => {
 
   // const pr = await github.pullRequests.create({owner, repo, head: 'test', base: 'master', title:'first one', body: '@jbaxleyiii check me out!'});
   // console.log(pr);
+
 }
-
-asyncFun();
-
-
 
 module.exports = (robot) => {
   // Your code here
