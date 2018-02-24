@@ -1,5 +1,9 @@
 const Botkit = require('botkit');
+var Quip = require('quip.js');
 const commands = require('probot-commands');
+
+const promisifyAll = require('es6-promisify-all');
+
 
 //https://github.com/octokit/rest.js#options for config
 const octokit = require('@octokit/rest')({})
@@ -18,46 +22,58 @@ const app = createApp({
 
 class GithubAPI {
 
-  constructor() {
+  constructor(owner, repo) {
     this.repo = repo;
     this.owner = owner;
     this.fileBlobs = [];
   }
 
-  async function authenticate() {
+  async authenticate() {
     const githubAsApp = await app.asApp();
     console.log("Installations:")
     const installations = await githubAsApp.apps.getInstallations({});
 
-    this.github = app.asInstallation(installations.data[0].id);
+    this.github = await app.asInstallation(installations.data[0].id);
   }
 
-  async function addFile(baseName, branchName, path, content) {
+  async addFile(path, content) {
+    const owner = this.owner;
+    const repo = this.repo;
     const encoding = 'utf-8'; //can be 'base64'
-    const blob = await github.gitdata.createBlob({owner, repo, content, encoding});
+    const blob = await this.github.gitdata.createBlob({owner, repo, content, encoding});
     this.fileBlobs.push({
       sha: blob.data.sha,
       path,
     });
-
     return blob;
   }
 
-  async function createBranch(message) {
-    const branch = await github.gitdata.getReference({owner, repo, ref});
+  async createBranch(baseBranchName, newBranchName) {
+    const owner = this.owner;
+    const repo = this.repo;
+    const baseBranch = await this.github.repos.getBranch({owner, repo, branch: baseBranchName});
+
+    const currentCommitSha = baseBranch.data.commit.sha;
+    const fullRef = `refs/heads/${newBranchName}`;
+    try {
+      return await this.github.gitdata.createReference({owner, repo, ref:fullRef, sha: currentCommitSha});
+    } catch (e) {
+      const ref = `heads/${newBranchName}`;
+      return await this.github.gitdata.getReference({owner, repo, ref});
+    }
   }
 
-  async function getCurrentCommit(branchName) {
+  async getCurrentCommit(branchName) {
     const owner = this.owner;
     const repo = this.repo;
 
-    const branch = await github.repos.getBranch({owner, repo, branch: branchName});
+    const branch = await this.github.repos.getBranch({owner, repo, branch: branchName});
     const sha = branch.data.commit.sha;
 
     return this.github.gitdata.getCommit({owner, repo, sha});
   }
 
-  async function createCommit(message, base_commit) {
+  async createCommit(message, base_commit) {
     const owner = this.owner;
     const repo = this.repo;
 
@@ -73,11 +89,11 @@ class GithubAPI {
     //100755 for executable (blob),
     //040000 for subdirectory (tree),
     //160000 for submodule (commit), or
-    //120000 for a blob that specifies the path of a symlink
+    //120000r a blob that specifies the path of a symlink
     const filesToAdd = this.fileBlobs.map(({sha, path}) => ({
       mode: '100644',
       type: 'blob',
-      sha: blob.data.sha,
+      sha,
       path,
     }));
 
@@ -93,24 +109,28 @@ class GithubAPI {
       repo,
       message:'test commit',
       tree: newTree.data.sha,
-      parents:[ commit.data.sha ]
+      parents:[ base_commit.data.sha ]
     });
   }
 
-  async function pushCommit(branchName, commit) {
+  async pushCommit(branchName, commit) {
+    const owner = this.owner;
+    const repo = this.repo;
     const ref = `heads/${branchName}`;
     return await this.github.gitdata.updateReference({
-      owner: this.owner,
-      repo: this.repo,
+      owner,
+      repo,
       ref,
-      sha:commit.data.sh
+      sha:commit.data.sha
     });
   }
 
-  async function openPR(base, head, title, body) {
-    return github.pullRequests.create({
-      owner: this.owner,
-      repo: this.repo,
+  async openPR(base, head, title, body) {
+    const owner = this.owner;
+    const repo = this.repo;
+    return this.github.pullRequests.create({
+      owner,
+      repo,
       head,
       base,
       title,
@@ -119,6 +139,80 @@ class GithubAPI {
 
   }
 }
+
+async function testing() {
+  const gh = new GithubAPI('apollographql', 'apollo-bot');
+  await gh.authenticate();
+
+  console.log('create branch');
+  await gh.createBranch('master', 'test');
+  console.log('add file');
+  await gh.addFile('test/lol', 'secret sauce');
+  console.log('get current');
+  const currentCommit = await gh.getCurrentCommit('test');
+  console.log('create commit');
+  const newCommit = await gh.createCommit('framework commit', currentCommit);
+  console.log('push commit');
+  await gh.pushCommit('test', newCommit);
+  console.log('open pr');
+  await gh.openPR('master', 'test', 'framework pr', 'body')
+  return;
+}
+
+//testing();
+
+const QuipAPI = new Quip({
+  // Quip Access Token (required)
+  accessToken: process.env.QUIP_TOKEN,
+});
+
+const threads = promisifyAll(QuipAPI.th);
+const users = promisifyAll(QuipAPI.users);
+const folders = promisifyAll(QuipAPI.folders);
+
+function promisifyQuip(that, fn){
+  return function() {
+    return new Promise((resolve, reject) => {
+      console.log(...arguments)
+
+      fn.bind(that)(...arguments, (err, data) => {
+        if(err) reject(err);
+        else resolve(data);
+      });
+    });
+  };
+}
+
+async function quipTesting() {
+  const currentUser = await promisifyQuip(QuipAPI.users, QuipAPI.users.getAuthenticatedUser)();
+  console.log(currentUser)
+  console.log(currentUser.starred_folder_id)
+
+  const getFolder = async id => promisifyQuip(QuipAPI.folders, QuipAPI.folders.getFolder)({ id });
+  const getFolders = async ids => promisifyQuip(QuipAPI.folders, QuipAPI.folders.getFolders)({ ids });
+
+  const starredFolders = await getFolders([ currentUser.starred_folder_id ]);
+  const starredFolder = await getFolder(currentUser.starred_folder_id)
+  console.log(starredFolder)
+  const childIds = starredFolder.children
+    .filter(child => child.hasOwnProperty('folder_id'))
+    .filter(({ folder_id }) => folder_id)
+  console.log(childIds)
+
+
+  const contributorMeetings = await getFolders(childIds)
+  console.log(contributorMeetings)
+  console.log(Object.values(contributorMeetings).map(f => f.folder.title));
+
+  // QuipAPI.threads.getRecentThreads(console.log);
+  // const recents = await threads.getRecentThreads();
+  // console.log(recents);
+}
+
+quipTesting();
+
+
+
 
 async function createIssueComment(github, options) {
   // github.issues.createComment({
