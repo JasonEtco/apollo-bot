@@ -8,6 +8,7 @@
   "scripts": {
     "start": "probot run ./index.js",
     "dev": "nodemon --exec \"npm start\"",
+    "prod": "NODE_ENV=production nodemon --exec \"npm start\"",
     "local": "nodemon --exec \"npm test\"",
     "watch": "jest --watch",
     "test": "jest",

@@ -1,17 +1,50 @@
-export class GithubAPI {
+const createApp = require('github-app');
+
+module.exports = class GithubAPI {
 
   constructor(owner, repo) {
+
+    this.app = createApp({
+      // Your app id
+      id: process.env.APP_ID,
+      // The private key for your app, which can be downloaded from the
+      // app's settings: https://github.com/settings/apps
+      cert: process.env.PRIVATE_KEY || require('fs').readFileSync(process.env.PRIVATE_KEY_PATH)
+    });
+
     this.repo = repo;
     this.owner = owner;
     this.fileBlobs = [];
   }
 
   async authenticate() {
-    const githubAsApp = await app.asApp();
+    const githubAsApp = await this.app.asApp();
     console.log("Installations:")
     const installations = await githubAsApp.apps.getInstallations({});
 
-    this.github = await app.asInstallation(installations.data[0].id);
+    this.github = await this.app.asInstallation(installations.data[0].id);
+  }
+
+  async readFileContents(branch, filePath) {
+    const owner = this.owner;
+    const repo = this.repo;
+    const commit = await this.getCurrentCommit(branch);
+
+    const tree = await this.github.gitdata.getTree({
+      owner,
+      repo,
+      sha:commit.data.tree.sha,
+      recursive: true
+    });
+
+    const matchingBlob = tree.data.tree.filter(({ path }) => path === filePath).pop();
+    if(!matchingBlob) {
+      return null;
+    }
+
+    const blob = await this.github.gitdata.getBlob({owner, repo, sha: matchingBlob.sha });
+    const content = Buffer.from(blob.data.content, 'base64');
+    return content.toString('utf8');
   }
 
   async addFile(path, content) {
