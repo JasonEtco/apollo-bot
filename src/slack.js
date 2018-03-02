@@ -1,3 +1,5 @@
+const Botkit = require('botkit');
+
 const controller = Botkit.slackbot({});
 
 const bot = controller.spawn({

@@ -1,6 +1,6 @@
-const createApp = require('github-app');
+const createApp = require('./github-app');
 
-module.exports = class GithubAPI {
+module.exports.GithubAPI = class GithubAPI {
 
   constructor(owner, repo) {
 
@@ -22,7 +22,9 @@ module.exports = class GithubAPI {
     console.log("Installations:")
     const installations = await githubAsApp.apps.getInstallations({});
 
+    //instance of https://github.com/octokit/rest.js
     this.github = await this.app.asInstallation(installations.data[0].id);
+    return this.gitub;
   }
 
   async readFileContents(branch, filePath) {
@@ -84,6 +86,7 @@ module.exports = class GithubAPI {
     return this.github.gitdata.getCommit({owner, repo, sha});
   }
 
+  //adds all of the currently added files
   async createCommit(message, base_commit) {
     const owner = this.owner;
     const repo = this.repo;
@@ -107,6 +110,7 @@ module.exports = class GithubAPI {
       sha,
       path,
     }));
+    this.fileBlob = [];
 
     const newTree = await this.github.gitdata.createTree({
       owner,
@@ -149,4 +153,20 @@ module.exports = class GithubAPI {
     });
 
   }
+}
+
+module.exports.getClient = async function() {
+  const app = createApp({
+    // Your app id
+    id: process.env.APP_ID,
+    // The private key for your app, which can be downloaded from the
+    // app's settings: https://github.com/settings/apps
+    cert: process.env.PRIVATE_KEY || require('fs').readFileSync(process.env.PRIVATE_KEY_PATH)
+  });
+
+  const githubAsApp = await app.asApp();
+  const installations = await githubAsApp.apps.getInstallations({});
+
+  const github = await app.asInstallation(installations.data[0].id);
+  return github;
 }

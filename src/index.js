@@ -1,40 +1,16 @@
-const Botkit = require('botkit');
-const GithubAPI = require('./github');
+const { GithubAPI } = require('./github');
 
 const promisifyAll = require('es6-promisify-all');
 
 //https://github.com/octokit/rest.js#options for config
 const octokit = require('@octokit/rest')({})
 
-
-async function testing(robot) {
-  const gh = new GithubAPI('apollographql', 'apollo-bot');
-  await gh.authenticate();
-
-  const env = await gh.readFileContents('master', '.env.example');
-  console.log(env);
-
-  robot.log('create branch');
-  await gh.createBranch('master', 'test');
-  robot.log('add file');
-  await gh.addFile('test/lol', 'secret sauce');
-  robot.log('get current');
-  const currentCommit = await gh.getCurrentCommit('test');
-  robot.log('create commit');
-  const newCommit = await gh.createCommit('framework commit', currentCommit);
-  robot.log('push commit');
-  await gh.pushCommit('test', newCommit);
-  robot.log('open pr');
-  await gh.openPR('master', 'test', 'framework pr', 'body')
-  return;
-}
-
-
 const possibleLabels = [
   /feature/,
   /blocking/,
   /has-reproduction/,
   /good-first-issue/,
+  /good-first-review/,
 ]
 
 function addCheckedLabels(context, body) {
