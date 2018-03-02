@@ -138,7 +138,7 @@ module.exports.GithubAPI = class GithubAPI {
     });
   }
 
-  async pushCommit(branchName, commit) {
+  async pushCommit(branchName, commit, force=false) {
     const owner = this.owner;
     const repo = this.repo;
     const ref = `heads/${branchName}`;
@@ -146,7 +146,8 @@ module.exports.GithubAPI = class GithubAPI {
       owner,
       repo,
       ref,
-      sha:commit.data.sha
+      sha:commit.data.sha,
+      force,
     });
   }
 

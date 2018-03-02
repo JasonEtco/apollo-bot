@@ -2,28 +2,28 @@ require('dotenv').config()
 
 const { GithubAPI, getClient, getAllRepoNames } = require('../github');
 
-const issueTemplateAddition =`**Labels**
+const issueTemplateAddition =`<!--**Issue Labels**
+
+While not necessary, you can help organize our issues by labeling this issue when you open it.  To add a label automatically, simply [x] mark the appropriate box below:
 
 - [ ] has-reproduction
 - [ ] feature
 - [ ] blocking
-- [ ] good-first-issue
+- [ ] good first issue
 
-<!--
-You are also able to add labels by placing /label on a new line
-followed by the label you would like to add. ex: /label discussion
+To add a label not listed above, simply place \`/label another-label-name\` on a line by itself.
 -->`;
 
-const prTemplateAddition =`**Labels**
+const prTemplateAddition =`<!--**Pull Request Labels**
+
+While not necessary, you can help organize our pull requests by labeling this issue when you open it.  To add a label automatically, simply [x] mark the appropriate box below:
 
 - [ ] has-reproduction
 - [ ] feature
 - [ ] blocking
-- [ ] good-first-review
+- [ ] good first review
 
-<!--
-You are also able to add labels by placing /label on a new line
-followed by the label you would like to add. ex: /label discussion
+To add a label not listed above, simply place \`/label another-label-name\` on a line by itself.
 -->`;
 
 async function updateTemplates(client, repo, newBranch) {
@@ -38,9 +38,9 @@ async function updateTemplates(client, repo, newBranch) {
     console.log('add updates');
 
     const newIssueContent = `${issueTemplate || ''}
-    ${issueTemplateAddition}`;
+${issueTemplateAddition}`;
     const newPRContent = `${prTemplate || ''}
-    ${prTemplateAddition}`;
+${prTemplateAddition}`;
 
     await gh.addFile('.github/ISSUE_TEMPLATE.md', newIssueContent);
     await gh.addFile('.github/PULL_REQUEST_TEMPLATE.md', newPRContent);

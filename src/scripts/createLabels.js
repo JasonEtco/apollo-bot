@@ -10,24 +10,24 @@ const apolloLabels = [
     description: 'Prevents production or dev due to perf, bug, build error, etc..',
   },
   {
-    name: 'good-first-issue',
-    color: 'bfdadc',
+    name: 'good first issue',
+    color: '7057ff',
     description: 'Good issue for a first time contributor to tackle',
   },
   {
-    name: 'good-first-review',
-    color: 'bfdadc',
+    name: 'good first review',
+    color: '7057ff',
     description: 'Good review for a first time contributor to look at',
   },
   {
     name: 'feature',
-    color: '5319e7',
+    color: 'a2eeef',
     description: 'Feature: new addition or enhancement to existing solutions',
   },
   {
     name: 'has-reproduction',
     color: '42f44e',
-    description: 'Has a reproduction in a codesandbox or single minimal repository',
+    description: '❤ Has a reproduction in a codesandbox or single minimal repository',
   },
 ]
 

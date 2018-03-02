@@ -5,8 +5,8 @@ const possibleLabels = [
   /feature/,
   /blocking/,
   /has-reproduction/,
-  /good-first-issue/,
-  /good-first-review/,
+  /good first issue/,
+  /good first review/,
 ]
 
 function addCheckedLabels(context, body) {
