@@ -1,20 +1,30 @@
 const createApp = require('./github-app');
 
+function makeApp() {
+  const prod = process.env.NODE_ENV === 'production';
+
+  return createApp({
+    // Your app id
+    id: prod ? process.env.PROD_APP_ID : process.env.APP_ID,
+    // The private key for your app, which can be downloaded from the
+    // app's settings: https://github.com/settings/apps
+    cert: prod ? process.env.PROD_PRIVATE_KEY || require('fs').readFileSync(process.env.PROD_PRIVATE_KEY_PATH) :
+    process.env.PRIVATE_KEY || require('fs').readFileSync(process.env.PRIVATE_KEY_PATH)
+  });
+}
+
 module.exports.GithubAPI = class GithubAPI {
 
-  constructor(owner, repo) {
-
-    this.app = createApp({
-      // Your app id
-      id: process.env.APP_ID,
-      // The private key for your app, which can be downloaded from the
-      // app's settings: https://github.com/settings/apps
-      cert: process.env.PRIVATE_KEY || require('fs').readFileSync(process.env.PRIVATE_KEY_PATH)
-    });
-
+  //client is optional and can be created with an this.authenticate call or getClient
+  constructor(owner, repo, client) {
+    this.app = makeApp()
     this.repo = repo;
     this.owner = owner;
     this.fileBlobs = [];
+
+    if(client) {
+      this.github = client;
+    }
   }
 
   async authenticate() {
@@ -122,7 +132,7 @@ module.exports.GithubAPI = class GithubAPI {
     return this.github.gitdata.createCommit({
       owner,
       repo,
-      message:'test commit',
+      message,
       tree: newTree.data.sha,
       parents:[ base_commit.data.sha ]
     });
@@ -156,17 +166,22 @@ module.exports.GithubAPI = class GithubAPI {
 }
 
 module.exports.getClient = async function() {
-  const app = createApp({
-    // Your app id
-    id: process.env.APP_ID,
-    // The private key for your app, which can be downloaded from the
-    // app's settings: https://github.com/settings/apps
-    cert: process.env.PRIVATE_KEY || require('fs').readFileSync(process.env.PRIVATE_KEY_PATH)
-  });
-
+  const app = makeApp();
   const githubAsApp = await app.asApp();
   const installations = await githubAsApp.apps.getInstallations({});
 
   const github = await app.asInstallation(installations.data[0].id);
   return github;
+}
+
+module.exports.getAllRepoNames = async function getAllRepoNames(client) {
+
+  let response = await client.apps.getInstallationRepositories({ per_page: 100 });
+  let {data} = response;
+  while (client.hasNextPage(response)) {
+    response = await client.getNextPage(response)
+    data.repositories.push(...response.data.repositories)
+  }
+  const names = data.repositories.map(({name}) => name);
+  return names;
 }

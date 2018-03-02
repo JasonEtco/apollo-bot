@@ -32,27 +32,12 @@ async function updateTemplates(client, repo, newBranch) {
   try{
     const issueTemplate = await gh.readFileContents('master', '.github/ISSUE_TEMPLATE.md');
     const prTemplate = await gh.readFileContents('master', '.github/PULL_REQUEST_TEMPLATE.md');
-    console.log('create branch');
-    await gh.createBranch('master', newBranch);
 
-    console.log('add updates');
+    if(!issueTemplate) console.log(`${repo} has empty issue template`)
 
-    const newIssueContent = `${issueTemplate || ''}
-    ${issueTemplateAddition}`;
-    const newPRContent = `${prTemplate || ''}
-    ${prTemplateAddition}`;
+    if(!prTemplate) console.log(`${repo} has empty pr template`)
 
-    await gh.addFile('.github/ISSUE_TEMPLATE.md', newIssueContent);
-    await gh.addFile('.github/PULL_REQUEST_TEMPLATE.md', newPRContent);
-
-    console.log('get current');
-    const currentCommit = await gh.getCurrentCommit(newBranch);
-    console.log('create commit');
-    const newCommit = await gh.createCommit('[apollo-bot] Update the Issue/PR Templates with auto label', currentCommit);
-    console.log('push commit');
-    await gh.pushCommit(newBranch, newCommit);
-    console.log('open pr');
-    await gh.openPR('master', newBranch, '[apollo-bot] Update the Issue/PR Templates with auto label', 'This PR contains an update to the issue templates that adds a notice about being able to add labels to Issues and PRs')
+    return;
   } catch(e) {
     // console.error(`failed ${repo}\n`, e);
     console.log(`failed ${repo}`);

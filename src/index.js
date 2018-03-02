@@ -1,7 +1,3 @@
-const { GithubAPI } = require('./github');
-
-const promisifyAll = require('es6-promisify-all');
-
 //https://github.com/octokit/rest.js#options for config
 const octokit = require('@octokit/rest')({})
 

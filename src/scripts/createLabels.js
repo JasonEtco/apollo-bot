@@ -1,7 +1,7 @@
 require('dotenv').config()
 
 const octokit = require('@octokit/rest');
-const { getClient } = require('../github');
+const { getClient, getAllRepoNames } = require('../github');
 
 const apolloLabels = [
   {
@@ -22,7 +22,7 @@ const apolloLabels = [
   {
     name: 'feature',
     color: '5319e7',
-    description: 'Feature: new addition',
+    description: 'Feature: new addition or enhancement to existing solutions',
   },
   {
     name: 'has-reproduction',
@@ -40,18 +40,6 @@ async function paginate (client, method, args = {}) {
   }
   return data
 }
-
-async function getAllRepoNames(client) {
-  let response = await client.apps.getInstallationRepositories({ per_page: 100 });
-  let {data} = response;
-  while (client.hasNextPage(response)) {
-    response = await client.getNextPage(response)
-    data.repositories.push(...response.data.repositories)
-  }
-  const names = data.repositories.map(({name}) => name);
-  return names;
-}
-
 
 async function createOrUpdateLabels(client, owner, repo){
   const getNames = arr => arr.map(({name}) => name.toLowerCase());
