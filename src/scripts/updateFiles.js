@@ -54,7 +54,6 @@ ${prTemplateAddition}`;
     console.log('open pr');
     await gh.openPR('master', newBranch, '[apollo-bot] Update the Issue/PR Templates with auto label', 'This PR contains an update to the issue templates that adds a notice about being able to add labels to Issues and PRs')
   } catch(e) {
-    // console.error(`failed ${repo}\n`, e);
     console.log(`failed ${repo}`);
     console.error(`failed ${repo}\n`, e);
   }

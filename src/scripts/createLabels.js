@@ -12,12 +12,12 @@ const apolloLabels = [
   {
     name: 'good first issue',
     color: '7057ff',
-    description: 'Good issue for a first time contributor to tackle',
+    description: 'Issues that are suitable for first-time contributors.',
   },
   {
     name: 'good first review',
     color: '7057ff',
-    description: 'Good review for a first time contributor to look at',
+    description: 'PR\'s that are suitable for first-time contributors to review.',
   },
   {
     name: 'feature',
@@ -67,7 +67,28 @@ async function syncLabels() {
   const repos = await getAllRepoNames(client);
 
   console.log('Syncing Labels')
-  const creationJobs = repos.map(repo => createOrUpdateLabels(client, 'apollographql', repo));
+  const creationJobs = repos.map(repo => ({
+    update: async () => createOrUpdateLabels(client, 'apollographql', repo),
+    name: repo,
+  }));
+
+  const asyncForEach = async (array, callback) => {
+    for (let index = 0; index < array.length; index++) {
+      await callback(array[index], index, array)
+    }
+  }
+  const timeout = ms => new Promise(res => setTimeout(res, ms))
+
+  await asyncForEach(creationJobs, async ({ name, update }) => {
+    console.log(`trying ${name}`);
+    try{
+      await update();
+      await timeout(100);
+    } catch (e) {
+      console.log(`failed ${name}`);
+      console.error(e);
+    }
+  });
 
   return Promise.all(creationJobs)
 }
