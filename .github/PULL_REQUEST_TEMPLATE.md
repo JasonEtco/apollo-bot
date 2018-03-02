@@ -1,3 +1,15 @@
 <!--
   Thanks for filing a pull request on Apollo Bot!
 -->
+
+  **Labels**
+
+- [ ] has-reproduction
+- [ ] feature
+- [ ] blocking
+- [ ] good-first-review
+
+<!--
+You are also able to add labels by placing /label on a new line
+followed by the label you would like to add. ex: /label discussion
+-->
