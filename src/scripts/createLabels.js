@@ -1,4 +1,5 @@
 require('dotenv').config()
+const { timeout, asyncForEach } = require('../utils');
 
 const octokit = require('@octokit/rest');
 const { getClient, getAllRepoNames } = require('../github');
@@ -71,13 +72,6 @@ async function syncLabels() {
     update: async () => createOrUpdateLabels(client, 'apollographql', repo),
     name: repo,
   }));
-
-  const asyncForEach = async (array, callback) => {
-    for (let index = 0; index < array.length; index++) {
-      await callback(array[index], index, array)
-    }
-  }
-  const timeout = ms => new Promise(res => setTimeout(res, ms))
 
   await asyncForEach(creationJobs, async ({ name, update }) => {
     console.log(`trying ${name}`);

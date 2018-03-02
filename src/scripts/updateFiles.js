@@ -1,10 +1,11 @@
 require('dotenv').config()
 
 const { GithubAPI, getClient, getAllRepoNames } = require('../github');
+const { timeout, asyncForEach } = require('../utils');
 
 const issueTemplateAddition =`<!--**Issue Labels**
 
-While not necessary, you can help organize our issues by labeling this issue when you open it.  To add a label automatically, simply [x] mark the appropriate box below:
+While not necessary, you can help organize our issues by labeling this when you open it.  To add a label automatically, simply [x] mark the appropriate box below:
 
 - [ ] has-reproduction
 - [ ] feature
@@ -16,7 +17,7 @@ To add a label not listed above, simply place \`/label another-label-name\` on a
 
 const prTemplateAddition =`<!--**Pull Request Labels**
 
-While not necessary, you can help organize our pull requests by labeling this issue when you open it.  To add a label automatically, simply [x] mark the appropriate box below:
+While not necessary, you can help organize our pull requests by labeling this when you open it.  To add a label automatically, simply [x] mark the appropriate box below:
 
 - [ ] has-reproduction
 - [ ] feature
@@ -72,13 +73,6 @@ async function updateAllTemplates() {
     update: async () => updateTemplates(client, repo, 'apollo-bot/templates'),
     name: repo,
   }));
-
-  const asyncForEach = async (array, callback) => {
-    for (let index = 0; index < array.length; index++) {
-      await callback(array[index], index, array)
-    }
-  }
-  const timeout = ms => new Promise(res => setTimeout(res, ms))
 
 
   await asyncForEach(updateJobs, async ({ name, update }) => {

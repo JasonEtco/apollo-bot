@@ -1,6 +1,7 @@
 require('dotenv').config()
 
 const { GithubAPI, getClient, getAllRepoNames } = require('../github');
+const { timeout, asyncForEach } = require('../utils');
 
 async function mergePR(client, repo) {
   const result = await client.pullRequests.getAll({owner:'apollographql', repo})
@@ -15,10 +16,11 @@ async function mergePR(client, repo) {
 
     try{
       const currentCommit = await gh.getCurrentCommit(relevant[0].base.ref);
-      console.log(currentCommit);
-      const sha = currentCommit.data.tree.sha;
+      // console.log(currentCommit);
+      // const sha = currentCommit.data.sha;
+      // console.log(sha);
       const number = relevant[0].number;
-      const result = await client.pullRequests.merge({owner, repo, number, sha, merge_method: 'squash'})
+      const result = await client.pullRequests.merge({owner, repo, number, merge_method: 'squash'})
 
       const check = await client.pullRequests.checkMerged({owner, repo, number})
       console.log(`merged ${repo}`);
@@ -42,14 +44,6 @@ async function mergePRs() {
     update: async () => mergePR(client, repo),
     name: repo,
   }));
-
-  const asyncForEach = async (array, callback) => {
-    for (let index = 0; index < array.length; index++) {
-      await callback(array[index], index, array)
-    }
-  }
-  const timeout = ms => new Promise(res => setTimeout(res, ms))
-
 
   await asyncForEach(mergeJobs, async ({ name, update }) => {
     // console.log(`trying ${name}`);
