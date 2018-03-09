@@ -2,11 +2,11 @@
 const octokit = require('@octokit/rest')({})
 
 const possibleLabels = [
-  /feature/,
-  /blocking/,
-  /has-reproduction/,
-  /good first issue/,
-  /good first review/,
+  /^feature$/,
+  /^blocking$/,
+  /^has-reproduction$/,
+  /^good first issue$/,
+  /^good first review$/,
 ]
 
 function addCheckedLabels(context, body) {
@@ -78,16 +78,15 @@ module.exports = (robot) => {
       const currentLabels = context.payload.issue.labels;
       const labels = addCheckedLabels(context, context.payload.issue.body);
       labels.push(...addCommandLabels(context, context.payload.issue.body));
-      console.log(context)
       await context.github.issues.addLabels(context.issue({labels}));
     })
   });
 
   ['pull_request.opened', 'pull_request.edited'].forEach(event => {
     robot.on(event, async context => {
-      robot.log(event)
       if(process.env.NODE_ENV === 'production' && context.payload.repository.name === 'apollo-bot')
         return;
+      robot.log(event)
 
       const currentLabels = context.payload.pull_request.labels;
       const labels = addCheckedLabels(context, context.payload.pull_request.body);
