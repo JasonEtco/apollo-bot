@@ -11,8 +11,8 @@ const possibleLabels = [
 
 function addCheckedLabels(context, body) {
   const name = 'label';
-  const regex = /^- \[x] *(.*)?($|<br>)/gm;
-  const single = /^- \[x] *(.*)?$/m;
+  const regex = /^- \[[xX] *(.*)?($|<br>)/gm;
+  const single = /^- \[[xX]] *(.*)?$/m;
   const checkedLabels = body.match(regex);
   if(!checkedLabels) return [];
 
