@@ -171,7 +171,13 @@ module.exports.getClient = async function() {
   const githubAsApp = await app.asApp();
   const installations = await githubAsApp.apps.getInstallations({});
 
-  const github = await app.asInstallation(installations.data[0].id);
+  const apolloInstall = installations.data.filter(inst => inst.account.login === 'apollographql');
+
+  if(apolloInstall.length != 1) {
+    throw new Error('Did not find apollographql installation');
+  }
+
+  const github = await app.asInstallation(apolloInstall[0].id);
   return github;
 }
 
