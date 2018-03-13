@@ -7,6 +7,7 @@ const possibleLabels = [
   /^has-reproduction$/,
   /^good first issue$/,
   /^good first review$/,
+  /^docs$/,
 ]
 
 function addCheckedLabels(context, body) {
