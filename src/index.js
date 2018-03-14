@@ -58,43 +58,37 @@ module.exports = (robot) => {
   robot.log('Yay, the app was loaded!');
 
   //also takes care of pr comments
-  ['issue_comment.created', 'issue_comment.edited'].forEach(event => {
-    robot.on(event, async context => {
-      if(process.env.NODE_ENV === 'production' && context.payload.repository.name === 'apollo-bot')
-        return;
+  robot.on(['issue_comment.created', 'issue_comment.edited'], async context => {
+    if(process.env.NODE_ENV === 'production' && context.payload.repository.name === 'apollo-bot')
+      return;
 
-      robot.log(event)
-      const currentLabels = context.payload.issue.labels;
-      const labels = addCommandLabels(context, context.payload.comment.body);
-      await context.github.issues.addLabels(context.issue({labels}));
-    });
+    robot.log(event)
+    const currentLabels = context.payload.issue.labels;
+    const labels = addCommandLabels(context, context.payload.comment.body);
+    await context.github.issues.addLabels(context.issue({labels}));
   });
 
-  ['issues.opened', 'issues.reopened', 'issues.edited'].forEach(event => {
-    robot.on(event, async context => {
-      if(process.env.NODE_ENV === 'production' && context.payload.repository.name === 'apollo-bot')
-        return;
+  robot.on(['issues.opened', 'issues.reopened', 'issues.edited'], async context => {
+    if(process.env.NODE_ENV === 'production' && context.payload.repository.name === 'apollo-bot')
+      return;
 
-      robot.log(event);
-      const currentLabels = context.payload.issue.labels;
-      const labels = addCheckedLabels(context, context.payload.issue.body);
-      labels.push(...addCommandLabels(context, context.payload.issue.body));
-      await context.github.issues.addLabels(context.issue({labels}));
-    })
-  });
+    robot.log(event);
+    const currentLabels = context.payload.issue.labels;
+    const labels = addCheckedLabels(context, context.payload.issue.body);
+    labels.push(...addCommandLabels(context, context.payload.issue.body));
+    await context.github.issues.addLabels(context.issue({labels}));
+  })
 
-  ['pull_request.opened', 'pull_request.edited'].forEach(event => {
-    robot.on(event, async context => {
-      if(process.env.NODE_ENV === 'production' && context.payload.repository.name === 'apollo-bot')
-        return;
-      robot.log(event)
+  robot.on(['pull_request.opened', 'pull_request.edited'], async context => {
+    if(process.env.NODE_ENV === 'production' && context.payload.repository.name === 'apollo-bot')
+      return;
+    robot.log(event)
 
-      const currentLabels = context.payload.pull_request.labels;
-      const labels = addCheckedLabels(context, context.payload.pull_request.body);
-      labels.push(...addCommandLabels(context, context.payload.pull_request.body));
-      //context.pull_request({labels}) does not return a correct object ¯\_(ツ)_/¯
-      //neither does context.github.pullRequests
-      await context.github.issues.addLabels(context.issue({labels}));
-    });
+    const currentLabels = context.payload.pull_request.labels;
+    const labels = addCheckedLabels(context, context.payload.pull_request.body);
+    labels.push(...addCommandLabels(context, context.payload.pull_request.body));
+    //context.pull_request({labels}) does not return a correct object ¯\_(ツ)_/¯
+    //neither does context.github.pullRequests
+    await context.github.issues.addLabels(context.issue({labels}));
   });
 }
